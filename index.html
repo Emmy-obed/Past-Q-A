@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Past Questions Bank</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#153029">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+  :root{
+    --board:#153029;
+    --board-2:#1c3c33;
+    --chalk:#F1EFE4;
+    --chalk-dim:#B9C4BC;
+    --yellow:#E8C468;
+    --red:#C1443C;
+    --blue:#7FA3C0;
+    --rule:rgba(241,239,228,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, var(--board-2), var(--board) 60%);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    min-height:100dvh;
+    padding:24px;
+  }
+  .app{
+    width:100%;
+    max-width:640px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+    border:1px solid var(--rule);
+    border-radius:14px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    height:min(88vh,760px);
+    height:min(88dvh,760px);
+  }
+  header{
+    padding:20px 24px 16px;
+    border-bottom:1px dashed var(--rule);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header h1{
+    font-family:'Kalam',cursive;
+    font-size:1.4rem;
+    margin:0;
+    color:var(--yellow);
+    letter-spacing:0.3px;
+  }
+  header .sub{
+    font-size:0.72rem;
+    color:var(--chalk-dim);
+    margin-top:2px;
+  }
+  #refreshBtn{
+    background:none;
+    border:1px solid var(--rule);
+    color:var(--chalk-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.7rem;
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  #refreshBtn:hover{color:var(--chalk);border-color:var(--chalk-dim);}
+  #refreshBtn:focus-visible, .chip:focus-visible, #sendBtn:focus-visible, #textInput:focus-visible{
+    outline:2px solid var(--yellow); outline-offset:2px;
+  }
+
+  .install-banner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 20px;
+    background:rgba(232,196,104,0.12);
+    border-bottom:1px dashed var(--rule);
+    font-size:0.82rem;
+    color:var(--chalk);
+  }
+  .install-banner button{
+    font-family:'Inter',sans-serif;
+    font-size:0.78rem;
+    border-radius:8px;
+    cursor:pointer;
+    border:none;
+    padding:6px 12px;
+  }
+  #installBtn{
+    background:var(--yellow);
+    color:#1c1a0f;
+    font-weight:600;
+    margin-right:6px;
+  }
+  #dismissInstallBtn{
+    background:transparent;
+    color:var(--chalk-dim);
+    padding:6px 8px;
+  }
+  #dismissInstallBtn:hover{color:var(--chalk);}
+
+  #chatLog{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    overscroll-behavior:contain;
+    padding:22px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .msg{
+    max-width:86%;
+    padding:12px 14px;
+    border-radius:12px;
+    line-height:1.5;
+    font-size:0.94rem;
+    white-space:pre-wrap;
+    animation:rise .25s ease;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .bot{
+    align-self:flex-start;
+    background:rgba(241,239,228,0.06);
+    border:1px solid var(--rule);
+    border-top-left-radius:2px;
+  }
+  .user{
+    align-self:flex-end;
+    background:rgba(126,163,192,0.18);
+    border:1px solid rgba(127,163,192,0.35);
+    border-top-right-radius:2px;
+    color:var(--chalk);
+  }
+  .qa-card{
+    align-self:flex-start;
+    max-width:96%;
+    width:100%;
+    background:var(--chalk);
+    color:#20241d;
+    border-radius:10px;
+    padding:18px 20px;
+    position:relative;
+    box-shadow:0 12px 24px -10px rgba(0,0,0,0.5);
+    animation:rise .3s ease;
+  }
+  .qa-card .code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    color:#5b6b60;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:6px;
+  }
+  .qa-card .q-label{
+    font-family:'Kalam',cursive;
+    font-size:1.05rem;
+    color:#1c3c33;
+    margin-bottom:4px;
+  }
+  .qa-card .q-text{
+    font-size:0.95rem;
+    margin-bottom:14px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    line-height:1.55;
+  }
+  .qa-card hr{
+    border:none;
+    border-top:1px dashed #c9c2ac;
+    margin:12px 0;
+  }
+  .qa-card .a-label{
+    font-family:'Kalam',cursive;
+    color:var(--red);
+    font-size:1.02rem;
+    margin-bottom:4px;
+  }
+  .qa-card .a-text{
+    font-size:0.95rem;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    line-height:1.6;
+    max-height:320px;
+    overflow-y:auto;
+    padding-right:6px;
+    background:
+      linear-gradient(#F1EFE4 30%, rgba(241,239,228,0)),
+      linear-gradient(rgba(241,239,228,0), #F1EFE4 70%) 0 100%,
+      radial-gradient(farthest-side at 50% 0, rgba(28,60,51,.25), rgba(28,60,51,0)) 0 0,
+      radial-gradient(farthest-side at 50% 100%, rgba(28,60,51,.25), rgba(28,60,51,0)) 0 100%;
+    background-repeat:no-repeat;
+    background-size:100% 24px, 100% 24px, 100% 10px, 100% 10px;
+    background-attachment:local, local, scroll, scroll;
+  }
+  .qa-card .a-text,
+  .qa-card .calc-block,
+  .qa-card .calc-table-wrap{
+    scrollbar-width:thin;
+    scrollbar-color:#8a9c92 #e7e3d3;
+  }
+  .qa-card .a-text::-webkit-scrollbar,
+  .qa-card .calc-block::-webkit-scrollbar,
+  .qa-card .calc-table-wrap::-webkit-scrollbar{
+    width:8px;
+    height:8px;
+  }
+  .qa-card .a-text::-webkit-scrollbar-track,
+  .qa-card .calc-block::-webkit-scrollbar-track,
+  .qa-card .calc-table-wrap::-webkit-scrollbar-track{
+    background:#e7e3d3;
+    border-radius:8px;
+  }
+  .qa-card .a-text::-webkit-scrollbar-thumb,
+  .qa-card .calc-block::-webkit-scrollbar-thumb,
+  .qa-card .calc-table-wrap::-webkit-scrollbar-thumb{
+    background:#8a9c92;
+    border-radius:8px;
+  }
+  .qa-card .a-para{
+    margin:0 0 12px 0;
+  }
+  .qa-card .a-para:last-child{
+    margin-bottom:0;
+  }
+  .qa-card .calc-table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.82rem;
+    margin-top:2px;
+  }
+  .qa-card .calc-table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border:1px solid rgba(28,60,51,0.15);
+    border-radius:8px;
+    margin-bottom:12px;
+  }
+  .qa-card .a-text > .calc-table-wrap:last-child{
+    margin-bottom:0;
+  }
+  .qa-card .calc-table th, .qa-card .calc-table td{
+    border:1px solid rgba(28,60,51,0.15);
+    padding:8px 10px;
+    text-align:left;
+    white-space:nowrap;
+  }
+  .qa-card .calc-table th{
+    background:rgba(28,60,51,0.08);
+    color:#1c3c33;
+    font-weight:600;
+  }
+  .qa-card .calc-table tr:nth-child(even) td{
+    background:rgba(28,60,51,0.03);
+  }
+  .qa-card .calc-block{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.82rem;
+    line-height:1.5;
+    white-space:pre;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    background:#eae6d9;
+    border:1px solid rgba(28,60,51,0.12);
+    border-radius:8px;
+    padding:12px 14px;
+    margin-bottom:12px;
+  }
+  .qa-card .a-text > .calc-block:last-child{
+    margin-bottom:0;
+  }
+  .stamp{
+    position:absolute;
+    top:14px;
+    right:16px;
+    font-family:'Kalam',cursive;
+    font-weight:700;
+    font-size:0.75rem;
+    color:var(--red);
+    border:2px solid var(--red);
+    border-radius:999px;
+    padding:3px 10px;
+    transform:rotate(8deg);
+    opacity:0.85;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-self:flex-start;
+    max-width:96%;
+  }
+  .chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.8rem;
+    background:rgba(232,196,104,0.12);
+    border:1px solid rgba(232,196,104,0.4);
+    color:var(--yellow);
+    padding:6px 12px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .chip:hover{background:rgba(232,196,104,0.22);}
+
+  form#inputRow{
+    display:flex;
+    gap:10px;
+    padding:16px 20px;
+    border-top:1px dashed var(--rule);
+  }
+  #textInput{
+    flex:1;
+    background:rgba(241,239,228,0.06);
+    border:1px solid var(--rule);
+    color:var(--chalk);
+    padding:11px 14px;
+    border-radius:10px;
+    font-family:'Inter',sans-serif;
+    font-size:0.94rem;
+  }
+  #textInput::placeholder{color:var(--chalk-dim);}
+  #sendBtn{
+    background:var(--yellow);
+    color:#1c1a0f;
+    border:none;
+    font-weight:600;
+    padding:0 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  #sendBtn:hover{filter:brightness(1.06);}
+  #sendBtn:disabled, #textInput:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .typing{display:flex;gap:4px;align-self:flex-start;padding:12px 14px;}
+  .typing span{width:6px;height:6px;background:var(--chalk-dim);border-radius:50%;animation:blink 1.2s infinite ease-in-out;}
+  .typing span:nth-child(2){animation-delay:.2s;}
+  .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+
+  @media (prefers-reduced-motion: reduce){
+    .msg,.qa-card{animation:none;}
+    .typing span{animation:none;}
+  }
+
+  @media (max-width: 480px){
+    body{ padding:0; }
+    .app{
+      max-width:100%;
+      height:100vh;
+      height:100dvh;
+      border-radius:0;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>📘 Past Questions Bank</h1>
+      <div class="sub">live from your Google Sheet</div>
+    </div>
+    <button id="refreshBtn" title="Reload the question bank from Google Sheets">↻ refresh bank</button>
+  </header>
+  <div id="installBanner" class="install-banner" hidden>
+    <span>📲 Install this app for quick, full-screen access</span>
+    <div>
+      <button id="installBtn" type="button">Install</button>
+      <button id="dismissInstallBtn" type="button" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+  <div id="chatLog"></div>
+  <form id="inputRow" autocomplete="off">
+    <input id="textInput" type="text" placeholder="Type here…" disabled>
+    <button id="sendBtn" type="submit" disabled>Send</button>
+  </form>
+</div>
+
+<script>
+/* =====================================================================
+   ADMIN SETUP — edit these two lines to point at your Google Sheet.
+   1. Open your Google Sheet → Share → "Anyone with the link" → Viewer.
+   2. Copy the long ID from the sheet's URL:
+      https://docs.google.com/spreadsheets/d/  <-- THIS PART -->  /edit
+   3. Put the tab (bottom-left) name in SHEET_NAME.
+   Expected columns (header row, any order, case-insensitive):
+      Course Code | Course Title | Question Number | Question | Answer
+   ("Answer" can also be named "Solution" or "Solutions").
+   Optional: add an "Exam Year" column (e.g. 2021, 2022/2023) — if present,
+   the app will ask students which year they want after they pick a course.
+   ===================================================================== */
+const SHEET_ID   = "1NfsM5LmFbKALtXGmAt-PFilMKcKp4bijEWOJlA3ey3A";
+const SHEET_NAME = "Sheet1";
+
+/* Optional paywall — leave PAYSTACK_PUBLIC_KEY blank to make everything free.
+   Add an "Access" column to your sheet with "Free" or "Paid" per question.
+   Get your public key from your Paystack dashboard → Settings → API Keys & Webhooks
+   (only YOU can create that account — it needs your own bank/ID details). */
+const PAYSTACK_PUBLIC_KEY = "";
+const PRICE_NGN = 200;
+/* ===================================================================== */
+
+const chatLog   = document.getElementById('chatLog');
+const form       = document.getElementById('inputRow');
+const textInput  = document.getElementById('textInput');
+const sendBtn    = document.getElementById('sendBtn');
+const refreshBtn = document.getElementById('refreshBtn');
+
+let bank = [];        // parsed rows from the sheet
+let state = 'loading'; // loading -> name -> course -> qnum -> next
+let studentName = '';
+let currentCourseRows = [];
+let currentCourseLabel = '';
+let currentSearchRows = [];   // rows to search question numbers within (course, optionally filtered by year)
+let currentYearLabel = '';
+let hasYearColumn = false;
+let unlockedPaid = false;
+let pendingPaidRow = null;
+
+function addBotMessage(text){
+  const el = document.createElement('div');
+  el.className = 'msg bot';
+  el.textContent = text;
+  chatLog.appendChild(el);
+  scrollDown();
+}
+function addUserMessage(text){
+  const el = document.createElement('div');
+  el.className = 'msg user';
+  el.textContent = text;
+  chatLog.appendChild(el);
+  scrollDown();
+}
+function addTyping(){
+  const el = document.createElement('div');
+  el.className = 'typing';
+  el.id = 'typingIndicator';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  chatLog.appendChild(el);
+  scrollDown();
+  return el;
+}
+function removeTyping(){
+  const t = document.getElementById('typingIndicator');
+  if(t) t.remove();
+}
+function addChips(labels, onClick){
+  const wrap = document.createElement('div');
+  wrap.className = 'chips';
+  labels.forEach(l=>{
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = l;
+    c.tabIndex = 0;
+    c.onclick = () => onClick(l);
+    c.onkeydown = (e) => { if(e.key==='Enter') onClick(l); };
+    wrap.appendChild(c);
+  });
+  chatLog.appendChild(wrap);
+  scrollDown();
+}
+function looksTabular(text){
+  const t = String(text || '');
+  return t.includes('\t') || /( {2,}\S.*\n){2,}/.test(t) || /\n {2,}/.test(t);
+}
+function splitAnswerSegments(text){
+  // Groups consecutive lines into 'table' segments (contain |) and 'text' segments (don't),
+  // preserving order so nothing is dropped — unlike a filter-only approach.
+  const lines = String(text || '').split('\n');
+  const segments = [];
+  let current = null;
+  for(const raw of lines){
+    const trimmed = raw.trim();
+    if(!trimmed){
+      if(current && current.type === 'text') current.lines.push('');
+      continue;
+    }
+    const isPipe = trimmed.includes('|');
+    const type = isPipe ? 'table' : 'text';
+    if(!current || current.type !== type){
+      current = { type, lines: [] };
+      segments.push(current);
+    }
+    current.lines.push(trimmed);
+  }
+  return segments;
+}
+function renderPipeTable(lines){
+  if(lines.length < 2) return null; // need a header + at least one row to count as a real table
+  const rows = lines.map(l => l.split('|').map(c => c.trim()));
+  const [header, ...body] = rows;
+  const thead = `<tr>${header.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+  const tbody = body.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
+  return `<div class="calc-table-wrap"><table class="calc-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+}
+function renderAnswerBlock(text){
+  const segments = splitAnswerSegments(text);
+  const parts = segments.map(seg => {
+    if(seg.type === 'table'){
+      const table = renderPipeTable(seg.lines);
+      if(table) return table;
+      // a lone '|' line isn't a real table — fall through and show it as text
+    }
+    const joined = seg.lines.join('\n').trim();
+    if(!joined) return '';
+    return looksTabular(joined)
+      ? `<pre class="calc-block">${escapeHtml(joined)}</pre>`
+      : `<p class="a-para">${escapeHtml(joined)}</p>`;
+  });
+  return `<div class="a-text">${parts.join('')}</div>`;
+}
+function addQACard(row){
+  const card = document.createElement('div');
+  card.className = 'qa-card';
+  const yearBit = row.year ? ` · ${escapeHtml(row.year)}` : '';
+  card.innerHTML = `
+    <div class="stamp">✓ found</div>
+    <div class="code">${escapeHtml(row.courseCode)} · Q${escapeHtml(row.qNumber)}${yearBit}</div>
+    <div class="q-label">Question</div>
+    <div class="q-text">${escapeHtml(row.question)}</div>
+    <hr>
+    <div class="a-label">Answer</div>
+    ${renderAnswerBlock(row.answer)}
+  `;
+  chatLog.appendChild(card);
+  scrollDown();
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function scrollDown(){
+  requestAnimationFrame(()=>{ chatLog.scrollTop = chatLog.scrollHeight; });
+}
+function setInputEnabled(on, placeholder){
+  textInput.disabled = !on;
+  sendBtn.disabled = !on;
+  if(placeholder) textInput.placeholder = placeholder;
+  if(on) textInput.focus();
+}
+
+function normalizeHeader(h){
+  return String(h||'').trim().toLowerCase();
+}
+function findCol(headers, candidates){
+  const norm = headers.map(normalizeHeader);
+  for(const cand of candidates){
+    const idx = norm.indexOf(cand);
+    if(idx !== -1) return idx;
+  }
+  return -1;
+}
+
+async function loadBank(){
+  state = 'loading';
+  setInputEnabled(false);
+  const typing = addTyping();
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+  if(SHEET_ID.indexOf('PASTE_YOUR') === 0){
+    removeTyping();
+    addBotMessage("The admin hasn't connected a Google Sheet yet — edit SHEET_ID at the top of this file's code with the sheet's ID, make sure sharing is set to \"Anyone with the link → Viewer\", then refresh.");
+    return;
+  }
+
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText.trim(), { header:true, skipEmptyLines:true });
+    if(parsed.errors && parsed.errors.length && (!parsed.data || !parsed.data.length)){
+      throw new Error('Could not parse sheet data');
+    }
+    const headers = parsed.meta.fields || [];
+    const codeIdx = findCol(headers, ['course code','coursecode','code']);
+    const titleIdx = findCol(headers, ['course title','coursetitle','course name','title']);
+    const qnumIdx  = findCol(headers, ['question number','question no','q number','qno','number']);
+    const qIdx     = findCol(headers, ['question','question text']);
+    const aIdx     = findCol(headers, ['answer','solution','solutions','answers']);
+    const accessIdx = findCol(headers, ['access','tier','plan']);
+    const yearIdx = findCol(headers, ['exam year','year','session','exam session']);
+
+    if(codeIdx === -1 && titleIdx === -1){
+      throw new Error('Missing Course Code / Course Title column');
+    }
+
+    bank = parsed.data.map(row => ({
+      courseCode: codeIdx!==-1 ? row[headers[codeIdx]] : '',
+      courseTitle: titleIdx!==-1 ? row[headers[titleIdx]] : '',
+      qNumber: qnumIdx!==-1 ? String(row[headers[qnumIdx]]||'').trim() : '',
+      question: qIdx!==-1 ? row[headers[qIdx]] : '',
+      answer: aIdx!==-1 ? row[headers[aIdx]] : '',
+      access: accessIdx!==-1 ? String(row[headers[accessIdx]]||'').trim().toLowerCase() : 'free',
+      year: yearIdx!==-1 ? String(row[headers[yearIdx]]||'').trim() : ''
+    })).filter(r => r.courseCode || r.courseTitle);
+
+    hasYearColumn = bank.some(r => r.year);
+
+    removeTyping();
+    if(!bank.length){
+      addBotMessage("I reached the sheet, but couldn't find any rows in it yet. Once your admin adds questions, tap refresh.");
+      return;
+    }
+    startConversation();
+  }catch(err){
+    removeTyping();
+    addBotMessage("I couldn't load the question bank from Google Sheets. Double-check that: the Sheet ID is correct, the tab name matches SHEET_NAME, and sharing is set to \"Anyone with the link → Viewer\". Then tap refresh.");
+    console.error(err);
+  }
+}
+
+function startConversation(){
+  state = 'name';
+  addBotMessage("Hi! I'm your past questions helper. What's your name?");
+  setInputEnabled(true, "Type your name…");
+}
+
+function uniqueCourses(){
+  const map = new Map();
+  bank.forEach(r=>{
+    const key = (r.courseCode||'').toLowerCase().trim() || (r.courseTitle||'').toLowerCase().trim();
+    if(!map.has(key)) map.set(key, r);
+  });
+  return [...map.values()];
+}
+
+function matchCourses(input){
+  const q = input.trim().toLowerCase();
+  if(!q) return [];
+  const courses = uniqueCourses();
+  return courses.filter(r =>
+    (r.courseCode||'').toLowerCase().trim() === q ||
+    (r.courseCode||'').toLowerCase().includes(q) ||
+    (r.courseTitle||'').toLowerCase().includes(q)
+  );
+}
+
+function askCourse(){
+  state = 'course';
+  addBotMessage(`What course would you like to study, ${studentName}? (type the course title or course code)`);
+  setInputEnabled(true, "e.g. MTH101 or Linear Algebra");
+}
+
+function handleCourseInput(text){
+  const matches = matchCourses(text);
+  const distinctCodes = new Set(matches.map(m => (m.courseCode||m.courseTitle).toLowerCase()));
+  if(matches.length === 0){
+    addBotMessage(`I couldn't find a course matching "${text}" in the bank. Try the exact course code, or part of the course title.`);
+    return;
+  }
+  if(distinctCodes.size > 1){
+    addBotMessage(`A few courses match "${text}" — which one did you mean?`);
+    addChips(matches.map(m => `${m.courseCode || ''} ${m.courseTitle ? '– ' + m.courseTitle : ''}`.trim()), (label)=>{
+      addUserMessage(label);
+      const chosenCode = label.split('–')[0].trim();
+      selectCourse(chosenCode);
+    });
+    return;
+  }
+  selectCourse(matches[0].courseCode || matches[0].courseTitle);
+}
+
+function selectCourse(codeOrTitle){
+  const key = codeOrTitle.toLowerCase().trim();
+  currentCourseRows = bank.filter(r =>
+    (r.courseCode||'').toLowerCase().trim() === key ||
+    (r.courseTitle||'').toLowerCase().trim() === key
+  );
+  if(!currentCourseRows.length){
+    currentCourseRows = bank.filter(r => (r.courseCode||'').toLowerCase().includes(key) || (r.courseTitle||'').toLowerCase().includes(key));
+  }
+  if(!currentCourseRows.length){
+    addBotMessage("Hmm, I lost track of that course — try typing the course code again.");
+    return;
+  }
+  currentCourseLabel = `${currentCourseRows[0].courseCode || ''}${currentCourseRows[0].courseTitle ? ' – ' + currentCourseRows[0].courseTitle : ''}`;
+
+  if(hasYearColumn){
+    askYear();
+  }else{
+    askQuestionNumber(currentCourseRows);
+  }
+}
+
+function availableYears(){
+  return [...new Set(currentCourseRows.map(r => r.year).filter(Boolean))]
+    .sort((a,b)=> b.localeCompare(a, undefined, {numeric:true}));
+}
+
+function askYear(){
+  state = 'year';
+  const years = availableYears();
+  addBotMessage(`Great, ${currentCourseLabel}. Which exam year would you like to practice?`);
+  if(years.length) addChips(years.slice(0, 20), (label)=>{
+    addUserMessage(label);
+    handleYearInput(label);
+  });
+  setInputEnabled(true, "e.g. 2023");
+}
+
+function handleYearInput(text){
+  const q = text.trim().toLowerCase();
+  const rows = currentCourseRows.filter(r => r.year.toLowerCase() === q || r.year.toLowerCase().includes(q));
+  if(!rows.length){
+    const years = availableYears().join(', ');
+    addBotMessage(`I couldn't find ${text} for ${currentCourseLabel}. Available years: ${years || '(none listed yet)'}`);
+    return;
+  }
+  currentYearLabel = text.trim();
+  askQuestionNumber(rows);
+}
+
+function askQuestionNumber(rows){
+  currentSearchRows = rows;
+  const numbers = rows.map(r => r.qNumber).filter(Boolean);
+  state = 'qnum';
+  addBotMessage(`Which question number would you like to practice?`);
+  if(numbers.length) addChips(numbers.slice(0, 20), (label)=>{
+    addUserMessage(label);
+    handleQuestionNumberInput(label);
+  });
+  setInputEnabled(true, "e.g. 1, 2, 3a…");
+}
+
+function handleQuestionNumberInput(text){
+  const q = text.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  const found = currentSearchRows.find(r => r.qNumber.toLowerCase().replace(/[^a-z0-9]/g,'') === q);
+  if(!found){
+    const available = currentSearchRows.map(r=>r.qNumber).filter(Boolean).join(', ');
+    addBotMessage(`I couldn't find question ${text}. Available question numbers: ${available || '(none listed yet)'}`);
+    return;
+  }
+  const isPaid = found.access === 'paid' || found.access === 'premium';
+  if(isPaid && !unlockedPaid && PAYSTACK_PUBLIC_KEY){
+    pendingPaidRow = found;
+    state = 'paywall-email';
+    addBotMessage(`This is a paid solution (₦${PRICE_NGN}). Paying once unlocks every paid question for the rest of this visit. What's your email, so I can send the receipt?`);
+    setInputEnabled(true, "you@example.com");
+    return;
+  }
+  if(isPaid && !unlockedPaid && !PAYSTACK_PUBLIC_KEY){
+    addBotMessage("This question is marked Paid, but payments aren't set up yet — showing it for free for now.");
+  }
+  showAnswer(found);
+}
+
+function showAnswer(found){
+  addQACard(found);
+  state = 'next';
+  addBotMessage("What next?");
+  const options = ['Another question'];
+  if(hasYearColumn) options.push('Different year, same course');
+  options.push('Different course');
+  addChips(options, (label)=>{
+    addUserMessage(label);
+    if(label === 'Another question'){
+      askQuestionNumber(currentSearchRows);
+    }else if(label.startsWith('Different year')){
+      askYear();
+    }else{
+      askCourse();
+    }
+  });
+  setInputEnabled(true, "Type here, or use the buttons above…");
+}
+
+function startPaystackCheckout(email){
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: email,
+    amount: PRICE_NGN * 100, // kobo
+    currency: 'NGN',
+    ref: 'pastq_' + Date.now(),
+    callback: function(response){
+      unlockedPaid = true;
+      addBotMessage("Payment received — thank you! Here's your solution:");
+      if(pendingPaidRow) showAnswer(pendingPaidRow);
+      pendingPaidRow = null;
+    },
+    onClose: function(){
+      addBotMessage("No worries — let me know if you'd like to try again, or pick a different (free) question number.");
+      state = 'qnum';
+      setInputEnabled(true, "e.g. 1");
+    }
+  });
+  handler.openIframe();
+}
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const text = textInput.value.trim();
+  if(!text) return;
+  addUserMessage(text);
+  textInput.value = '';
+
+  if(state === 'name'){
+    studentName = text.split(' ')[0];
+    askCourse();
+  }else if(state === 'course'){
+    handleCourseInput(text);
+  }else if(state === 'year'){
+    handleYearInput(text);
+  }else if(state === 'qnum'){
+    handleQuestionNumberInput(text);
+  }else if(state === 'paywall-email'){
+    if(!/^\S+@\S+\.\S+$/.test(text)){
+      addBotMessage("That doesn't look like a valid email — try again?");
+      return;
+    }
+    setInputEnabled(false);
+    startPaystackCheckout(text);
+  }else if(state === 'next'){
+    const lower = text.toLowerCase();
+    if(lower.includes('different') && lower.includes('year') && hasYearColumn){
+      askYear();
+    }else if(lower.includes('course')){
+      askCourse();
+    }else{
+      askQuestionNumber(currentSearchRows);
+    }
+  }
+});
+
+refreshBtn.addEventListener('click', ()=>{
+  chatLog.innerHTML = '';
+  loadBank();
+});
+
+loadBank();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* fine if this fails before hosting */ });
+  });
+}
+
+/* ---- Install prompt banner ---- */
+const installBanner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+let deferredInstallPrompt = null;
+
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isDismissedThisSession(){
+  return sessionStorage.getItem('installDismissed') === '1';
+}
+
+// Android / Chrome / Edge: browser fires this when the app is installable
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(!isStandalone() && !isDismissedThisSession()){
+    installBanner.hidden = false;
+  }
+});
+
+installBtn.addEventListener('click', async () => {
+  if(!deferredInstallPrompt){
+    installBanner.querySelector('span').textContent = "Install isn't available right now — try your browser's menu (⋮) → \"Install app\" instead.";
+    installBtn.hidden = true;
+    return;
+  }
+  try{
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if(choice.outcome === 'accepted'){
+      installBanner.hidden = true;
+    }else{
+      installBanner.querySelector('span').textContent = 'No problem — you can install any time from the browser menu (⋮) → "Install app".';
+      installBtn.hidden = true;
+    }
+  }catch(err){
+    installBanner.querySelector('span').textContent = "That didn't go through — try your browser's menu (⋮) → \"Install app\" instead.";
+    installBtn.hidden = true;
+    console.error('Install prompt failed:', err);
+  }
+});
+
+dismissInstallBtn.addEventListener('click', () => {
+  installBanner.hidden = true;
+  sessionStorage.setItem('installDismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBanner.hidden = true;
+});
+
+// iOS Safari never fires beforeinstallprompt — show manual "Add to Home Screen" instructions instead
+function isIos(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+if(isIos() && !isStandalone() && !isDismissedThisSession()){
+  installBanner.querySelector('span').textContent = '📲 Tap Share, then "Add to Home Screen" to install';
+  installBtn.hidden = true;
+  installBanner.hidden = false;
+}
+
+</script>
+</body>
+</html>
