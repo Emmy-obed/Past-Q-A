@@ -103,12 +103,6 @@
     border:none;
     padding:6px 12px;
   }
-  #installBtn{
-    background:var(--yellow);
-    color:#1c1a0f;
-    font-weight:600;
-    margin-right:6px;
-  }
   #dismissInstallBtn{
     background:transparent;
     color:var(--chalk-dim);
@@ -383,11 +377,8 @@
     <button id="refreshBtn" title="Reload the question bank from Google Sheets">↻ refresh bank</button>
   </header>
   <div id="installBanner" class="install-banner" hidden>
-    <span>📲 Install this app for quick, full-screen access</span>
-    <div>
-      <button id="installBtn" type="button">Install</button>
-      <button id="dismissInstallBtn" type="button" aria-label="Dismiss">✕</button>
-    </div>
+    <span id="installBannerText">📲 Install this app for quick, full-screen access</span>
+    <button id="dismissInstallBtn" type="button" aria-label="Dismiss">✕</button>
   </div>
   <div id="chatLog"></div>
   <form id="inputRow" autocomplete="off">
@@ -853,11 +844,10 @@ if('serviceWorker' in navigator){
   });
 }
 
-/* ---- Install prompt banner ---- */
+/* ---- Install banner: pure instructions, no fragile browser API involved ---- */
 const installBanner = document.getElementById('installBanner');
-const installBtn = document.getElementById('installBtn');
+const installBannerText = document.getElementById('installBannerText');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
-let deferredInstallPrompt = null;
 
 function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -865,38 +855,16 @@ function isStandalone(){
 function isDismissedThisSession(){
   return sessionStorage.getItem('installDismissed') === '1';
 }
+function isIos(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
 
-// Android / Chrome / Edge: browser fires this when the app is installable
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  if(!isStandalone() && !isDismissedThisSession()){
-    installBanner.hidden = false;
-  }
-});
-
-installBtn.addEventListener('click', async () => {
-  if(!deferredInstallPrompt){
-    installBanner.querySelector('span').textContent = "Install isn't available right now — try your browser's menu (⋮) → \"Install app\" instead.";
-    installBtn.hidden = true;
-    return;
-  }
-  try{
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if(choice.outcome === 'accepted'){
-      installBanner.hidden = true;
-    }else{
-      installBanner.querySelector('span').textContent = 'No problem — you can install any time from the browser menu (⋮) → "Install app".';
-      installBtn.hidden = true;
-    }
-  }catch(err){
-    installBanner.querySelector('span').textContent = "That didn't go through — try your browser's menu (⋮) → \"Install app\" instead.";
-    installBtn.hidden = true;
-    console.error('Install prompt failed:', err);
-  }
-});
+if(!isStandalone() && !isDismissedThisSession()){
+  installBannerText.textContent = isIos()
+    ? '📲 To install: tap Share, then "Add to Home Screen"'
+    : '📲 To install: tap ⋮ (menu), then "Install app" or "Add to Home screen"';
+  installBanner.hidden = false;
+}
 
 dismissInstallBtn.addEventListener('click', () => {
   installBanner.hidden = true;
@@ -906,17 +874,6 @@ dismissInstallBtn.addEventListener('click', () => {
 window.addEventListener('appinstalled', () => {
   installBanner.hidden = true;
 });
-
-// iOS Safari never fires beforeinstallprompt — show manual "Add to Home Screen" instructions instead
-function isIos(){
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-if(isIos() && !isStandalone() && !isDismissedThisSession()){
-  installBanner.querySelector('span').textContent = '📲 Tap Share, then "Add to Home Screen" to install';
-  installBtn.hidden = true;
-  installBanner.hidden = false;
-}
-
 </script>
 </body>
 </html>
