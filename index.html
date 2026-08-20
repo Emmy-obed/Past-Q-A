@@ -23,6 +23,7 @@
     --rule:rgba(241,239,228,0.14);
   }
   *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
   html,body{height:100%;}
   body{
     margin:0;
@@ -69,7 +70,7 @@
     color:var(--chalk-dim);
     margin-top:2px;
   }
-  #refreshBtn{
+  #refreshBtn, #changeProfileBtn{
     background:none;
     border:1px solid var(--rule);
     color:var(--chalk-dim);
@@ -79,10 +80,82 @@
     border-radius:8px;
     cursor:pointer;
   }
-  #refreshBtn:hover{color:var(--chalk);border-color:var(--chalk-dim);}
-  #refreshBtn:focus-visible, .chip:focus-visible, #sendBtn:focus-visible, #textInput:focus-visible{
+  header .header-actions{
+    display:flex;
+    gap:8px;
+  }
+  #refreshBtn:hover, #changeProfileBtn:hover{color:var(--chalk);border-color:var(--chalk-dim);}
+  #refreshBtn:focus-visible, #changeProfileBtn:focus-visible, .chip:focus-visible, #sendBtn:focus-visible, #textInput:focus-visible{
     outline:2px solid var(--yellow); outline-offset:2px;
   }
+
+  /* ---- Login screen ---- */
+  .login-screen{
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    background:
+      radial-gradient(ellipse at top left, var(--board-2), var(--board) 60%);
+  }
+  .login-card{
+    width:100%;
+    max-width:400px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+    border:1px solid var(--rule);
+    border-radius:14px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+    padding:28px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .login-card h1{
+    font-family:'Kalam',cursive;
+    font-size:1.5rem;
+    color:var(--yellow);
+    margin:0 0 4px;
+    text-align:center;
+  }
+  .login-sub{
+    color:var(--chalk-dim);
+    font-size:0.85rem;
+    text-align:center;
+    margin:0 0 18px;
+  }
+  .login-card label{
+    color:var(--chalk-dim);
+    font-size:0.78rem;
+    margin:10px 0 5px;
+  }
+  .login-card input, .login-card select{
+    background:rgba(241,239,228,0.06);
+    border:1px solid var(--rule);
+    color:var(--chalk);
+    padding:11px 13px;
+    border-radius:10px;
+    font-family:'Inter',sans-serif;
+    font-size:0.94rem;
+  }
+  .login-card select{ color-scheme:dark; }
+  .login-card input:focus, .login-card select:focus{
+    outline:2px solid var(--yellow); outline-offset:1px;
+  }
+  .login-card button[type="submit"]{
+    margin-top:20px;
+    background:var(--yellow);
+    color:#1c1a0f;
+    border:none;
+    font-weight:600;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    font-size:0.95rem;
+  }
+  .login-card button[type="submit"]:hover{filter:brightness(1.06);}
 
   .install-banner{
     display:flex;
@@ -364,17 +437,64 @@
       height:100dvh;
       border-radius:0;
     }
+    .login-screen{ padding:0; align-items:stretch; }
+    .login-card{ max-width:100%; border-radius:0; justify-content:center; }
   }
 </style>
 </head>
 <body>
-<div class="app">
+<div id="loginScreen" class="login-screen">
+  <form id="loginForm" class="login-card" autocomplete="off">
+    <h1>📘 Past Questions Bank</h1>
+    <p class="login-sub">Tell us a bit about you to find your courses faster</p>
+    <label for="loginName">Your name</label>
+    <input id="loginName" type="text" placeholder="e.g. Chidera" required>
+    <label for="loginLevel">Level</label>
+    <select id="loginLevel" required>
+      <option value="" disabled selected>Select your level</option>
+      <optgroup label="University (BSc/BA/BEng etc.)">
+        <option>100 Level</option>
+        <option>200 Level</option>
+        <option>300 Level</option>
+        <option>400 Level</option>
+        <option>500 Level</option>
+        <option>600 Level</option>
+      </optgroup>
+      <optgroup label="Polytechnic">
+        <option>ND1</option>
+        <option>ND2</option>
+        <option>HND1</option>
+        <option>HND2</option>
+      </optgroup>
+      <option>Other</option>
+    </select>
+    <label for="loginSchool">School</label>
+    <input id="loginSchool" type="text" placeholder="e.g. University of Port Harcourt" list="schoolSuggestions" required>
+    <datalist id="schoolSuggestions">
+      <option value="University of Lagos">
+      <option value="University of Port Harcourt">
+      <option value="University of Ibadan">
+      <option value="Obafemi Awolowo University">
+      <option value="Ahmadu Bello University">
+      <option value="University of Nigeria, Nsukka">
+      <option value="Covenant University">
+      <option value="Federal University of Technology, Owerri">
+      <option value="Rivers State University">
+      <option value="Lagos State University">
+    </datalist>
+    <button type="submit">Continue</button>
+  </form>
+</div>
+<div class="app" id="appScreen" hidden>
   <header>
     <div>
       <h1>📘 Past Questions Bank</h1>
       <div class="sub">live from your Google Sheet</div>
     </div>
-    <button id="refreshBtn" title="Reload the question bank from Google Sheets">↻ refresh bank</button>
+    <div class="header-actions">
+      <button id="changeProfileBtn" title="Change your name, level or school">👤 profile</button>
+      <button id="refreshBtn" title="Reload the question bank from Google Sheets">↻ refresh bank</button>
+    </div>
   </header>
   <div id="installBanner" class="install-banner" hidden>
     <span id="installBannerText">📲 Install this app for quick, full-screen access</span>
@@ -416,17 +536,29 @@ const form       = document.getElementById('inputRow');
 const textInput  = document.getElementById('textInput');
 const sendBtn    = document.getElementById('sendBtn');
 const refreshBtn = document.getElementById('refreshBtn');
+const loginScreen = document.getElementById('loginScreen');
+const appScreen = document.getElementById('appScreen');
+const loginForm = document.getElementById('loginForm');
+const loginName = document.getElementById('loginName');
+const loginLevel = document.getElementById('loginLevel');
+const loginSchool = document.getElementById('loginSchool');
+const changeProfileBtn = document.getElementById('changeProfileBtn');
 
 let bank = [];        // parsed rows from the sheet
-let state = 'loading'; // loading -> name -> course -> qnum -> next
+let state = 'loading'; // loading -> course -> qnum -> next
 let studentName = '';
+let studentLevel = '';
+let studentSchool = '';
 let currentCourseRows = [];
 let currentCourseLabel = '';
 let currentSearchRows = [];   // rows to search question numbers within (course, optionally filtered by year)
 let currentYearLabel = '';
 let hasYearColumn = false;
+let hasSchoolColumn = false;
+let hasLevelColumn = false;
 let unlockedPaid = false;
 let pendingPaidRow = null;
+
 
 function addBotMessage(text){
   const el = document.createElement('div');
@@ -589,6 +721,8 @@ async function loadBank(){
     const aIdx     = findCol(headers, ['answer','solution','solutions','answers']);
     const accessIdx = findCol(headers, ['access','tier','plan']);
     const yearIdx = findCol(headers, ['exam year','year','session','exam session']);
+    const schoolIdx = findCol(headers, ['school','university','institution']);
+    const levelIdx = findCol(headers, ['level','course level']);
 
     if(codeIdx === -1 && titleIdx === -1){
       throw new Error('Missing Course Code / Course Title column');
@@ -601,10 +735,14 @@ async function loadBank(){
       question: qIdx!==-1 ? row[headers[qIdx]] : '',
       answer: aIdx!==-1 ? row[headers[aIdx]] : '',
       access: accessIdx!==-1 ? String(row[headers[accessIdx]]||'').trim().toLowerCase() : 'free',
-      year: yearIdx!==-1 ? String(row[headers[yearIdx]]||'').trim() : ''
+      year: yearIdx!==-1 ? String(row[headers[yearIdx]]||'').trim() : '',
+      school: schoolIdx!==-1 ? String(row[headers[schoolIdx]]||'').trim() : '',
+      level: levelIdx!==-1 ? String(row[headers[levelIdx]]||'').trim() : ''
     })).filter(r => r.courseCode || r.courseTitle);
 
     hasYearColumn = bank.some(r => r.year);
+    hasSchoolColumn = bank.some(r => r.school);
+    hasLevelColumn = bank.some(r => r.level);
 
     removeTyping();
     if(!bank.length){
@@ -620,14 +758,23 @@ async function loadBank(){
 }
 
 function startConversation(){
-  state = 'name';
-  addBotMessage("Hi! I'm your past questions helper. What's your name?");
-  setInputEnabled(true, "Type your name…");
+  askCourse();
 }
 
 function uniqueCourses(){
   const map = new Map();
-  bank.forEach(r=>{
+  let rows = bank;
+  // Narrow to the student's own school/level when the sheet actually has that data —
+  // but never dead-end the student if nothing matches, just show everything instead.
+  if(hasSchoolColumn && studentSchool){
+    const bySchool = rows.filter(r => !r.school || r.school.toLowerCase().includes(studentSchool.toLowerCase()));
+    if(bySchool.length) rows = bySchool;
+  }
+  if(hasLevelColumn && studentLevel){
+    const byLevel = rows.filter(r => !r.level || r.level.toLowerCase() === studentLevel.toLowerCase());
+    if(byLevel.length) rows = byLevel;
+  }
+  rows.forEach(r=>{
     const key = (r.courseCode||'').toLowerCase().trim() || (r.courseTitle||'').toLowerCase().trim();
     if(!map.has(key)) map.set(key, r);
   });
@@ -803,10 +950,7 @@ form.addEventListener('submit', (e)=>{
   addUserMessage(text);
   textInput.value = '';
 
-  if(state === 'name'){
-    studentName = text.split(' ')[0];
-    askCourse();
-  }else if(state === 'course'){
+  if(state === 'course'){
     handleCourseInput(text);
   }else if(state === 'year'){
     handleYearInput(text);
@@ -836,7 +980,57 @@ refreshBtn.addEventListener('click', ()=>{
   loadBank();
 });
 
-loadBank();
+/* ---- Login / profile handling ---- */
+const PROFILE_KEY = 'pastq_profile';
+
+function enterApp(){
+  loginScreen.hidden = true;
+  appScreen.hidden = false;
+  chatLog.innerHTML = '';
+  loadBank();
+}
+
+function loadSavedProfile(){
+  try{
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(err){
+    return null;
+  }
+}
+
+function saveProfile(profile){
+  try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }catch(err){ /* storage unavailable, fine to skip */ }
+}
+
+loginForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  studentName = loginName.value.trim().split(' ')[0];
+  studentLevel = loginLevel.value;
+  studentSchool = loginSchool.value.trim();
+  saveProfile({ name: studentName, level: studentLevel, school: studentSchool });
+  enterApp();
+});
+
+changeProfileBtn.addEventListener('click', ()=>{
+  appScreen.hidden = true;
+  loginScreen.hidden = false;
+  loginName.value = studentName;
+  loginLevel.value = studentLevel;
+  loginSchool.value = studentSchool;
+});
+
+const savedProfile = loadSavedProfile();
+if(savedProfile && savedProfile.name){
+  studentName = savedProfile.name;
+  studentLevel = savedProfile.level || '';
+  studentSchool = savedProfile.school || '';
+  enterApp();
+}else{
+  loginScreen.hidden = false;
+  appScreen.hidden = true;
+}
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
@@ -848,18 +1042,23 @@ if('serviceWorker' in navigator){
 const installBanner = document.getElementById('installBanner');
 const installBannerText = document.getElementById('installBannerText');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+const INSTALL_DISMISSED_KEY = 'pastq_install_dismissed';
 
 function isStandalone(){
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
-function isDismissedThisSession(){
-  return sessionStorage.getItem('installDismissed') === '1';
+function isPermanentlyDismissed(){
+  return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
 }
 function isIos(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-if(!isStandalone() && !isDismissedThisSession()){
+if(isStandalone()){
+  // Genuinely running as an installed app right now — remember that so the
+  // banner never reappears on this device again, even from a browser tab later.
+  try{ localStorage.setItem(INSTALL_DISMISSED_KEY, '1'); }catch(err){}
+}else if(!isPermanentlyDismissed()){
   installBannerText.textContent = isIos()
     ? '📲 To install: tap Share, then "Add to Home Screen"'
     : '📲 To install: tap ⋮ (menu), then "Install app" or "Add to Home screen"';
@@ -868,11 +1067,12 @@ if(!isStandalone() && !isDismissedThisSession()){
 
 dismissInstallBtn.addEventListener('click', () => {
   installBanner.hidden = true;
-  sessionStorage.setItem('installDismissed', '1');
+  try{ localStorage.setItem(INSTALL_DISMISSED_KEY, '1'); }catch(err){}
 });
 
 window.addEventListener('appinstalled', () => {
   installBanner.hidden = true;
+  try{ localStorage.setItem(INSTALL_DISMISSED_KEY, '1'); }catch(err){}
 });
 </script>
 </body>
