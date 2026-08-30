@@ -986,25 +986,38 @@ function showAnswer(found){
 }
 
 function startPaystackCheckout(email){
-  const handler = PaystackPop.setup({
-    key: PAYSTACK_PUBLIC_KEY,
-    email: email,
-    amount: SUBSCRIPTION_PRICE_NGN * 100, // kobo
-    currency: 'NGN',
-    ref: 'pastq_sub_' + Date.now(),
-    callback: function(response){
-      activateSubscription();
-      addBotMessage(`Payment received — thank you! You now have unlimited access for the next ${SUBSCRIPTION_DAYS} days. Here's your solution:`);
-      if(pendingPaidRow) showAnswer(pendingPaidRow);
-      pendingPaidRow = null;
-    },
-    onClose: function(){
-      addBotMessage("No worries — you can subscribe any time you're ready. Pick a different question, or try again?");
-      state = 'qnum';
-      setInputEnabled(true, "e.g. 1");
-    }
-  });
-  handler.openIframe();
+  if(typeof PaystackPop === 'undefined'){
+    addBotMessage("Couldn't open the payment checkout — this can happen if an ad-blocker or browser privacy setting is blocking Paystack's script, or if there's a connection issue. Try turning off any ad-blocker, or switch to a different browser, then try again.");
+    state = 'qnum';
+    setInputEnabled(true, "e.g. 1");
+    return;
+  }
+  try{
+    const handler = PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: email,
+      amount: SUBSCRIPTION_PRICE_NGN * 100, // kobo
+      currency: 'NGN',
+      ref: 'pastq_sub_' + Date.now(),
+      callback: function(response){
+        activateSubscription();
+        addBotMessage(`Payment received — thank you! You now have unlimited access for the next ${SUBSCRIPTION_DAYS} days. Here's your solution:`);
+        if(pendingPaidRow) showAnswer(pendingPaidRow);
+        pendingPaidRow = null;
+      },
+      onClose: function(){
+        addBotMessage("No worries — you can subscribe any time you're ready. Pick a different question, or try again?");
+        state = 'qnum';
+        setInputEnabled(true, "e.g. 1");
+      }
+    });
+    handler.openIframe();
+  }catch(err){
+    addBotMessage("Something went wrong opening the payment checkout. Please check your internet connection and try again.");
+    state = 'qnum';
+    setInputEnabled(true, "e.g. 1");
+    console.error('Paystack checkout failed:', err);
+  }
 }
 
 form.addEventListener('submit', (e)=>{
