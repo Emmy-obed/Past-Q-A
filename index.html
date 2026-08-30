@@ -524,11 +524,17 @@ const SHEET_ID   = "1NfsM5LmFbKALtXGmAt-PFilMKcKp4bijEWOJlA3ey3A";
 const SHEET_NAME = "Sheet1";
 
 /* Optional paywall — leave PAYSTACK_PUBLIC_KEY blank to make everything free.
-   Add an "Access" column to your sheet with "Free" or "Paid" per question.
+   Model: every student gets FREE_QUESTION_LIMIT free questions total (across
+   every course, on this device). After that, they must pay SUBSCRIPTION_PRICE_NGN
+   to unlock everything for SUBSCRIPTION_DAYS days.
    Get your public key from your Paystack dashboard → Settings → API Keys & Webhooks
-   (only YOU can create that account — it needs your own bank/ID details). */
-const PAYSTACK_PUBLIC_KEY = "";
-const PRICE_NGN = 200;
+   (only YOU can create that account — it needs your own bank/ID details).
+   Note: this charges once per unlock, not true auto-recurring billing — a student
+   pays again after SUBSCRIPTION_DAYS. Real auto-renewal needs a backend later. */
+const PAYSTACK_PUBLIC_KEY = "pk_test_72b5a4fc6cdda0c1df54a23bee6be7d48d5cf889";
+const FREE_QUESTION_LIMIT = 3;
+const SUBSCRIPTION_PRICE_NGN = 5500;
+const SUBSCRIPTION_DAYS = 30;
 /* ===================================================================== */
 
 const chatLog   = document.getElementById('chatLog');
@@ -556,7 +562,6 @@ let currentYearLabel = '';
 let hasYearColumn = false;
 let hasSchoolColumn = false;
 let hasLevelColumn = false;
-let unlockedPaid = false;
 let pendingPaidRow = null;
 
 
@@ -758,6 +763,16 @@ async function loadBank(){
 }
 
 function startConversation(){
+  if(PAYSTACK_PUBLIC_KEY){
+    if(isSubscribed()){
+      addBotMessage(`Welcome back — you have unlimited access for ${subscriptionDaysLeft()} more day${subscriptionDaysLeft()===1?'':'s'}.`);
+    }else{
+      const left = FREE_QUESTION_LIMIT - getFreeViewedSet().size;
+      if(left > 0){
+        addBotMessage(`You have ${left} free question${left===1?'':'s'} left on this device. After that, unlock everything for ₦${SUBSCRIPTION_PRICE_NGN.toLocaleString()}/month.`);
+      }
+    }
+  }
   askCourse();
 }
 
@@ -879,6 +894,35 @@ function askQuestionNumber(rows){
   setInputEnabled(true, "e.g. 1, 2, 3a…");
 }
 
+/* ---- Free question tracking + subscription (persists on this device) ---- */
+const FREE_VIEWED_KEY = 'pastq_free_viewed';
+const SUBSCRIPTION_KEY = 'pastq_subscription_expires';
+
+function questionId(row){
+  return `${row.courseCode}|${row.qNumber}|${row.year||''}`.toLowerCase();
+}
+function getFreeViewedSet(){
+  try{ return new Set(JSON.parse(localStorage.getItem(FREE_VIEWED_KEY) || '[]')); }
+  catch(err){ return new Set(); }
+}
+function addFreeViewed(id){
+  const set = getFreeViewedSet();
+  set.add(id);
+  try{ localStorage.setItem(FREE_VIEWED_KEY, JSON.stringify([...set])); }catch(err){}
+}
+function isSubscribed(){
+  const expires = parseInt(localStorage.getItem(SUBSCRIPTION_KEY) || '0', 10);
+  return Date.now() < expires;
+}
+function activateSubscription(){
+  const expires = Date.now() + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000;
+  try{ localStorage.setItem(SUBSCRIPTION_KEY, String(expires)); }catch(err){}
+}
+function subscriptionDaysLeft(){
+  const expires = parseInt(localStorage.getItem(SUBSCRIPTION_KEY) || '0', 10);
+  return Math.max(0, Math.ceil((expires - Date.now()) / (24*60*60*1000)));
+}
+
 function handleQuestionNumberInput(text){
   const q = text.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   const found = currentSearchRows.find(r => r.qNumber.toLowerCase().replace(/[^a-z0-9]/g,'') === q);
@@ -887,18 +931,38 @@ function handleQuestionNumberInput(text){
     addBotMessage(`I couldn't find question ${text}. Available question numbers: ${available || '(none listed yet)'}`);
     return;
   }
-  const isPaid = found.access === 'paid' || found.access === 'premium';
-  if(isPaid && !unlockedPaid && PAYSTACK_PUBLIC_KEY){
-    pendingPaidRow = found;
-    state = 'paywall-email';
-    addBotMessage(`This is a paid solution (₦${PRICE_NGN}). Paying once unlocks every paid question for the rest of this visit. What's your email, so I can send the receipt?`);
-    setInputEnabled(true, "you@example.com");
+
+  if(!PAYSTACK_PUBLIC_KEY){
+    showAnswer(found); // payments not configured yet — everything stays free
     return;
   }
-  if(isPaid && !unlockedPaid && !PAYSTACK_PUBLIC_KEY){
-    addBotMessage("This question is marked Paid, but payments aren't set up yet — showing it for free for now.");
+
+  if(isSubscribed()){
+    showAnswer(found);
+    return;
   }
-  showAnswer(found);
+
+  const id = questionId(found);
+  const viewed = getFreeViewedSet();
+  if(viewed.has(id)){
+    showAnswer(found); // already used one of their free views on this exact question
+    return;
+  }
+  if(viewed.size < FREE_QUESTION_LIMIT){
+    addFreeViewed(id);
+    showAnswer(found);
+    const left = FREE_QUESTION_LIMIT - getFreeViewedSet().size;
+    if(left > 0 && left <= 2){
+      addBotMessage(`(${left} free question${left===1?'':'s'} left on this device.)`);
+    }
+    return;
+  }
+
+  // Free limit reached — offer the subscription
+  pendingPaidRow = found;
+  state = 'paywall-email';
+  addBotMessage(`You've used your ${FREE_QUESTION_LIMIT} free questions. Unlock unlimited access to every course for ₦${SUBSCRIPTION_PRICE_NGN.toLocaleString()}/month. What's your email, so I can send the receipt?`);
+  setInputEnabled(true, "you@example.com");
 }
 
 function showAnswer(found){
@@ -925,17 +989,17 @@ function startPaystackCheckout(email){
   const handler = PaystackPop.setup({
     key: PAYSTACK_PUBLIC_KEY,
     email: email,
-    amount: PRICE_NGN * 100, // kobo
+    amount: SUBSCRIPTION_PRICE_NGN * 100, // kobo
     currency: 'NGN',
-    ref: 'pastq_' + Date.now(),
+    ref: 'pastq_sub_' + Date.now(),
     callback: function(response){
-      unlockedPaid = true;
-      addBotMessage("Payment received — thank you! Here's your solution:");
+      activateSubscription();
+      addBotMessage(`Payment received — thank you! You now have unlimited access for the next ${SUBSCRIPTION_DAYS} days. Here's your solution:`);
       if(pendingPaidRow) showAnswer(pendingPaidRow);
       pendingPaidRow = null;
     },
     onClose: function(){
-      addBotMessage("No worries — let me know if you'd like to try again, or pick a different (free) question number.");
+      addBotMessage("No worries — you can subscribe any time you're ready. Pick a different question, or try again?");
       state = 'qnum';
       setInputEnabled(true, "e.g. 1");
     }
