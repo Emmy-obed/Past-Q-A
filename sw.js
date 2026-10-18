@@ -1,4 +1,4 @@
-const CACHE_NAME = 'past-questions-v4';
+const CACHE_NAME = 'past-questions-v5';
 const APP_SHELL = [
   './index.html',
   './manifest.json'
@@ -20,11 +20,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first: always try to get the freshest app shell; fall back to cache if offline.
-// (Google Sheet data itself is always fetched live, never cached, so questions stay current.)
+// Only our own app files (index.html, icons, manifest) are cached for offline use.
+// Everything else (the secure backend, Paystack, fonts) goes straight to the network,
+// so answers, payment checks and subscription status are never stored by the service worker.
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.hostname.includes('docs.google.com')) return; // never intercept sheet data
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)
